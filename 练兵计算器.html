@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>练兵计算器</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: "SimHei", "Microsoft YaHei", sans-serif;
+        }
+        
+        body {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-top: 0;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 16px;
+        }
+        
+        select, input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        .checkbox-group {
+            margin-bottom: 10px;
+        }
+        
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .checkbox-group input {
+            margin-right: 10px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f0f8ff;
+            border: 1px solid #bedeff;
+            font-size: 18px;
+            color: #0066cc;
+        }
+        
+        .bonus-info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>练兵计算器</h1>
+        
+        <div class="form-group">
+            <label for="operation">操作类型:</label>
+            <select id="operation" onchange="toggleInputs()">
+                <option value="training">训练</option>
+                <option value="promotion">晋升</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="level">选择等级:</label>
+            <select id="level">
+                <option value="9">9</option>
+                <option value="10" selected>10</option>
+            </select>
+        </div>
+        
+        <div class="form-group" id="timeGroup">
+            <label for="time">练兵时间（天）:</label>
+            <input type="number" id="time" step="0.01" min="0.01" placeholder="输入天数">
+        </div>
+        
+        <div class="form-group" id="troopGroup" style="display: none;">
+            <label for="troops">晋升兵力:</label>
+            <input type="number" id="troops" step="1" min="1" placeholder="输入兵力数量">
+        </div>
+        
+        <div class="form-group">
+            <label for="baseSpeed">基础加速百分比:</label>
+            <input type="number" id="baseSpeed" step="1" min="1" placeholder="输入百分比">
+        </div>
+        
+        <div class="form-group">
+            <label>技能加成:</label>
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="kingSkill" checked> 国王技能 (+30%)
+                </label>
+                <label>
+                    <input type="checkbox" id="normalVice"> 普通王国副执政官 (+10%)
+                </label>
+                <label>
+                    <input type="checkbox" id="supremeVice"> 至高王国副执政官 (+15%)
+                </label>
+                <label>
+                    <input type="checkbox" id="normalEducation"> 普通王国教育部长 (+50%)
+                </label>
+                <label>
+                    <input type="checkbox" id="supremeEducation"> 至高王国教育部长 (+75%)
+                </label>
+            </div>
+        </div>
+        
+        <button onclick="calculate()">计算</button>
+        
+        <div class="result" id="result">
+            等待计算...
+        </div>
+        
+        <div class="bonus-info">
+            <div>总加成: <span id="totalBonus">0%</span></div>
+            <div>官职加成: <span id="officialBonus">0%</span></div>
+        </div>
+    </div>
+
+    <script>
+        // 练兵速度数组（索引对应等级-1）
+        const trainingSpeeds = [10, 15, 22, 30, 40, 52, 65, 80, 1572/720, (44*60)/1042];
+        
+        // 切换训练/晋升模式的输入框显示
+        function toggleInputs() {
+            const operation = document.getElementById("operation").value;
+            const timeGroup = document.getElementById("timeGroup");
+            const troopGroup = document.getElementById("troopGroup");
+            
+            if (operation === "training") {
+                timeGroup.style.display = "block";
+                troopGroup.style.display = "none";
+            } else {
+                timeGroup.style.display = "none";
+                troopGroup.style.display = "block";
+            }
+        }
+        
+        // 计算功能
+        function calculate() {
+            try {
+                const operation = document.getElementById("operation").value;
+                const level = parseInt(document.getElementById("level").value);
+                const baseSpeed = parseFloat(document.getElementById("baseSpeed").value);
+                
+                if (isNaN(baseSpeed) || baseSpeed <= 0) {
+                    alert("请输入有效的基础加速百分比");
+                    return;
+                }
+                
+                // 计算官职加成
+                let officialBonus = 0;
+                if (document.getElementById("kingSkill").checked) officialBonus += 30;
+                if (document.getElementById("normalVice").checked) officialBonus += 10;
+                if (document.getElementById("supremeVice").checked) officialBonus += 15;
+                if (document.getElementById("normalEducation").checked) officialBonus += 50;
+                if (document.getElementById("supremeEducation").checked) officialBonus += 75;
+                
+                // 更新加成显示
+                document.getElementById("officialBonus").textContent = `${officialBonus}%`;
+                const totalBonus = baseSpeed + officialBonus;
+                document.getElementById("totalBonus").textContent = `${totalBonus}%`;
+                
+                // 根据操作类型计算
+                let result;
+                if (operation === "training") {
+                    const time = parseFloat(document.getElementById("time").value);
+                    if (isNaN(time) || time <= 0) {
+                        alert("请输入有效的训练时间");
+                        return;
+                    }
+                    
+                    const speedIndex = level - 1;
+                    const trainingSpeed = trainingSpeeds[speedIndex];
+                    result = time * 24 * 60 / (trainingSpeed / (1 + totalBonus / 100));
+                    document.getElementById("result").textContent = `${result.toFixed(2)} 兵力`;
+                } else {
+                    const troops = parseFloat(document.getElementById("troops").value);
+                    if (isNaN(troops) || troops <= 0) {
+                        alert("请输入有效的晋升兵力");
+                        return;
+                    }
+                    
+                    const prevLevel = level - 1;
+                    const prevSpeed = trainingSpeeds[prevLevel - 1];
+                    const currentSpeed = trainingSpeeds[level - 1];
+                    const speedDifference = currentSpeed - prevSpeed;
+                    
+                    result = troops * (speedDifference / (1 + totalBonus / 100)) / 24 / 60;
+                    document.getElementById("result").textContent = `${result.toFixed(2)} 天`;
+                }
+            } catch (error) {
+                alert("计算出错: " + error.message);
+            }
+        }
+        
+        // 初始化页面时计算一次加成
+        document.addEventListener("DOMContentLoaded", function() {
+            // 初始计算加成
+            let officialBonus = 0;
+            if (document.getElementById("kingSkill").checked) officialBonus += 30;
+            document.getElementById("officialBonus").textContent = `${officialBonus}%`;
+        });
+    </script>
+</body>
+</html>
